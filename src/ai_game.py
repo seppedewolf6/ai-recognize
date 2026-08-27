@@ -2,8 +2,10 @@ import cv2
 import mediapipe as mp
 import pygame
 import joblib
+import pandas as pd
 
 from character import Character
+
 
 # =========================
 # INSTELLINGEN
@@ -21,8 +23,17 @@ CONFIDENCE_THRESHOLD = 0.70
 
 model = joblib.load("models/gesture_model.pkl")
 
-print("Gesture model geladen.")
+# Dezelfde feature-namen als tijdens het trainen
+feature_columns = []
 
+for i in range(21):
+    feature_columns.extend([
+        f"x{i}",
+        f"y{i}",
+        f"z{i}"
+    ])
+
+print("Gesture model geladen.")
 
 # =========================
 # MEDIAPIPE
@@ -87,8 +98,22 @@ clock = pygame.time.Clock()
 
 character = Character(
     SCREEN_WIDTH // 2,
-    SCREEN_HEIGHT // 2
+    400
 )
+
+
+# =========================
+# BLOKKEN
+# =========================
+
+blocks = [
+
+    pygame.Rect(150, 460, 60, 40),
+    pygame.Rect(300, 460, 60, 40),
+    pygame.Rect(450, 460, 60, 40),
+    pygame.Rect(600, 460, 60, 40)
+
+]
 
 
 # =========================
@@ -132,7 +157,6 @@ while running:
     if not success:
         continue
 
-
     # BGR → RGB
     rgb_frame = cv2.cvtColor(
         frame,
@@ -146,7 +170,6 @@ while running:
 
     result = hands.process(rgb_frame)
 
-
     gesture = "Geen hand"
     confidence = 0.0
 
@@ -155,14 +178,12 @@ while running:
 
         hand_landmarks = result.multi_hand_landmarks[0]
 
-
-        # Teken landmarks op camerabeeld
+        # Landmarks tekenen
         mp_drawing.draw_landmarks(
             frame,
             hand_landmarks,
             mp_hands.HAND_CONNECTIONS
         )
-
 
         # =========================
         # LANDMARK DATA
@@ -177,19 +198,23 @@ while running:
         # AI VOORSPELLING
         # =========================
 
-        prediction = model.predict([
-            landmark_data
-        ])
+        # Maak DataFrame met dezelfde feature-namen
+        landmark_data_df = pd.DataFrame(
+            [landmark_data],
+            columns=feature_columns
+        )
+
+        prediction = model.predict(
+            landmark_data_df
+        )
 
         gesture = prediction[0]
 
-
-        probabilities = model.predict_proba([
-            landmark_data
-        ])
+        probabilities = model.predict_proba(
+            landmark_data_df
+        )
 
         confidence = max(probabilities[0])
-
 
         # =========================
         # CHARACTER BESTUREN
@@ -210,7 +235,7 @@ while running:
                 character.move_down()
 
             elif gesture == "ACTION":
-                character.action()
+                character.action(blocks)
 
 
     # =========================
@@ -264,6 +289,42 @@ while running:
 
     screen.fill((30, 30, 30))
 
+
+    # =========================
+    # GROND
+    # =========================
+
+    pygame.draw.rect(
+        screen,
+        (80, 80, 80),
+        (0, 500, SCREEN_WIDTH, 100)
+    )
+
+
+    # =========================
+    # BLOKKEN TEKENEN
+    # =========================
+
+    for block in blocks:
+
+        pygame.draw.rect(
+            screen,
+            (120, 80, 40),
+            block
+        )
+
+        pygame.draw.rect(
+            screen,
+            (180, 130, 70),
+            block,
+            3
+        )
+
+
+    # =========================
+    # CHARACTER
+    # =========================
+
     character.draw(screen)
 
 
@@ -285,12 +346,6 @@ while running:
         (255, 255, 255)
     )
 
-    controls_text = font.render(
-        "Control the character with your hand",
-        True,
-        (255, 255, 255, 255)
-    )
-
     screen.blit(
         gesture_text,
         (20, 20)
@@ -299,6 +354,45 @@ while running:
     screen.blit(
         confidence_text,
         (20, 55)
+    )
+
+
+    # =========================
+    # COOLDOWN
+    # =========================
+
+    cooldown = character.get_cooldown_remaining()
+
+    if cooldown > 0:
+
+        cooldown_text = font.render(
+            f"Action cooldown: {cooldown:.1f}s",
+            True,
+            (255, 255, 255)
+        )
+
+    else:
+
+        cooldown_text = font.render(
+            "Action: READY",
+            True,
+            (255, 255, 255)
+        )
+
+    screen.blit(
+        cooldown_text,
+        (20, 90)
+    )
+
+
+    # =========================
+    # UITLEG
+    # =========================
+
+    controls_text = font.render(
+        "Move with gestures - Action breaks blocks",
+        True,
+        (255, 255, 255)
     )
 
     screen.blit(

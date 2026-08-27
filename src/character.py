@@ -1,9 +1,11 @@
 import pygame
+import time
 
 
 class Character:
 
     def __init__(self, x, y):
+
         self.x = x
         self.y = y
 
@@ -12,8 +14,9 @@ class Character:
 
         self.speed = 5
 
-        # Voor de actie
-        self.action_timer = 0
+        # Action cooldown
+        self.action_cooldown = 5
+        self.last_action_time = 0
 
     def move_left(self):
         self.x -= self.speed
@@ -27,26 +30,68 @@ class Character:
     def move_down(self):
         self.y += self.speed
 
-    def action(self):
-        self.action_timer = 15
-        print("ACTION!")
+    def can_action(self):
+
+        current_time = time.time()
+
+        return (
+            current_time - self.last_action_time
+            >= self.action_cooldown
+        )
+
+    def action(self, blocks):
+
+        # Controleer cooldown
+        if not self.can_action():
+            return False
+
+        # Karakter-rechthoek
+        character_rect = pygame.Rect(
+            self.x,
+            self.y,
+            self.width,
+            self.height
+        )
+
+        # Kijk of het karakter op een blok staat
+        for block in blocks:
+
+            if character_rect.colliderect(block):
+                self.last_action_time = time.time()
+
+                blocks.remove(block)
+
+                print("Blok gebroken!")
+
+                return True
+
+        return False
 
     def update(self, screen_width, screen_height):
-        # Zorg dat het karakter binnen het scherm blijft
 
         self.x = max(
             0,
-            min(self.x, screen_width - self.width)
+            min(
+                self.x,
+                screen_width - self.width
+            )
         )
 
         self.y = max(
             0,
-            min(self.y, screen_height - self.height)
+            min(
+                self.y,
+                screen_height - self.height
+            )
         )
 
-        # Action timer aftellen
-        if self.action_timer > 0:
-            self.action_timer -= 1
+    def get_cooldown_remaining(self):
+
+        elapsed = time.time() - self.last_action_time
+
+        remaining = self.action_cooldown - elapsed
+
+        return max(0, remaining)
 
     def draw(self, screen):
 
@@ -108,14 +153,3 @@ class Character:
             (self.x + 40, self.y + 40),
             4
         )
-
-        # Laat het karakter tijdens ACTION een effect zien
-        if self.action_timer > 0:
-
-            pygame.draw.circle(
-                screen,
-                (255, 200, 0),
-                (head_x, head_y),
-                25,
-                3
-            )
