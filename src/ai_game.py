@@ -3,6 +3,7 @@ import mediapipe as mp
 import pygame
 import joblib
 
+from character import Character
 
 # =========================
 # INSTELLINGEN
@@ -74,7 +75,7 @@ screen = pygame.display.set_mode(
 )
 
 pygame.display.set_caption(
-    "AI Gesture Controller"
+    "AI Gesture Game"
 )
 
 clock = pygame.time.Clock()
@@ -83,8 +84,6 @@ clock = pygame.time.Clock()
 # =========================
 # CHARACTER
 # =========================
-
-from character import Character
 
 character = Character(
     SCREEN_WIDTH // 2,
@@ -101,6 +100,7 @@ camera = cv2.VideoCapture(0)
 if not camera.isOpened():
 
     print("Kan de webcam niet openen.")
+
     pygame.quit()
     exit()
 
@@ -124,7 +124,7 @@ while running:
 
 
     # =========================
-    # WEBCAM
+    # CAMERA
     # =========================
 
     success, frame = camera.read()
@@ -156,7 +156,7 @@ while running:
         hand_landmarks = result.multi_hand_landmarks[0]
 
 
-        # Hand tekenen
+        # Teken landmarks op camerabeeld
         mp_drawing.draw_landmarks(
             frame,
             hand_landmarks,
@@ -214,6 +214,41 @@ while running:
 
 
     # =========================
+    # CAMERA INFO
+    # =========================
+
+    cv2.putText(
+        frame,
+        f"Gesture: {gesture}",
+        (10, 40),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        1,
+        (0, 255, 0),
+        2
+    )
+
+    cv2.putText(
+        frame,
+        f"Confidence: {confidence:.0%}",
+        (10, 80),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        1,
+        (0, 255, 0),
+        2
+    )
+
+
+    # =========================
+    # CAMERA VENSTER
+    # =========================
+
+    cv2.imshow(
+        "Camera - AI Gesture Recognition",
+        frame
+    )
+
+
+    # =========================
     # CHARACTER UPDATE
     # =========================
 
@@ -233,7 +268,7 @@ while running:
 
 
     # =========================
-    # AI STATUS
+    # GAME INFO
     # =========================
 
     font = pygame.font.Font(None, 32)
@@ -250,6 +285,12 @@ while running:
         (255, 255, 255)
     )
 
+    controls_text = font.render(
+        "Control the character with your hand",
+        True,
+        (255, 255, 255, 255)
+    )
+
     screen.blit(
         gesture_text,
         (20, 20)
@@ -258,6 +299,11 @@ while running:
     screen.blit(
         confidence_text,
         (20, 55)
+    )
+
+    screen.blit(
+        controls_text,
+        (20, 570)
     )
 
 
