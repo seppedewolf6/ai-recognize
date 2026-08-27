@@ -25,7 +25,7 @@ columns.append("label")
 
 # CSV heeft momenteel geen header
 data = pd.read_csv(
-    "data/gestures.csv",
+    "../data/gestures.csv",
     header=None,
     names=columns
 )
@@ -107,7 +107,7 @@ print(classification_report(y_test, predictions))
 
 os.makedirs("models", exist_ok=True)
 
-model_path = "models/gesture_model.pkl"
+model_path = "../models/gesture_model.pkl"
 
 joblib.dump(model, model_path)
 
