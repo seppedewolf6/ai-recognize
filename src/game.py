@@ -2,11 +2,6 @@ import pygame
 
 from character import Character
 
-
-# =========================
-# PYGAME INITIALISEREN
-# =========================
-
 pygame.init()
 
 SCREEN_WIDTH = 800
@@ -22,28 +17,14 @@ pygame.display.set_caption(
 
 clock = pygame.time.Clock()
 
-
-# =========================
-# CHARACTER
-# =========================
-
 character = Character(
     SCREEN_WIDTH // 2,
     SCREEN_HEIGHT // 2
 )
 
-
-# =========================
-# GAME LOOP
-# =========================
-
 running = True
 
 while running:
-
-    # =========================
-    # EVENTS
-    # =========================
 
     for event in pygame.event.get():
 
@@ -54,11 +35,6 @@ while running:
 
             if event.key == pygame.K_SPACE:
                 character.action()
-
-
-    # =========================
-    # TOETSEN
-    # =========================
 
     keys = pygame.key.get_pressed()
 
@@ -74,29 +50,14 @@ while running:
     if keys[pygame.K_DOWN]:
         character.move_down()
 
-
-    # =========================
-    # CHARACTER UPDATE
-    # =========================
-
     character.update(
         SCREEN_WIDTH,
         SCREEN_HEIGHT
     )
 
-
-    # =========================
-    # SCHERM TEKENEN
-    # =========================
-
     screen.fill((30, 30, 30))
 
     character.draw(screen)
-
-
-    # =========================
-    # TEKST
-    # =========================
 
     font = pygame.font.Font(None, 32)
 
@@ -111,15 +72,8 @@ while running:
         (20, 20)
     )
 
-
     pygame.display.flip()
 
-    # 60 FPS
     clock.tick(60)
-
-
-# =========================
-# STOPPEN
-# =========================
 
 pygame.quit()
