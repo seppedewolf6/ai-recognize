@@ -2,19 +2,9 @@ import cv2
 import mediapipe as mp
 import joblib
 
-
-# =========================
-# 1. MODEL LADEN
-# =========================
-
 model = joblib.load("models/gesture_model.pkl")
 
 print("Gesture model geladen.")
-
-
-# =========================
-# 2. MEDIAPIPE INSTELLEN
-# =========================
 
 mp_hands = mp.solutions.hands
 mp_drawing = mp.solutions.drawing_utils
@@ -26,10 +16,6 @@ hands = mp_hands.Hands(
     min_tracking_confidence=0.5
 )
 
-
-# =========================
-# 3. LANDMARKS NORMALISEREN
-# =========================
 
 def normalize_landmarks(hand_landmarks):
     """
@@ -55,20 +41,11 @@ def normalize_landmarks(hand_landmarks):
     return data
 
 
-# =========================
-# 4. WEBCAM OPENEN
-# =========================
-
 camera = cv2.VideoCapture(0)
 
 if not camera.isOpened():
     print("Kan de webcam niet openen.")
     exit()
-
-
-# =========================
-# 5. REALTIME HERKENNING
-# =========================
 
 while True:
 
@@ -91,7 +68,6 @@ while True:
     confidence = 0.0
 
     if result.multi_hand_landmarks:
-
         hand_landmarks = result.multi_hand_landmarks[0]
 
         # Hand tekenen
@@ -120,11 +96,6 @@ while True:
 
         confidence = max(probabilities[0])
 
-
-    # =========================
-    # 6. RESULTAAT OP SCHERM
-    # =========================
-
     cv2.putText(
         frame,
         f"GESTURE: {gesture}",
@@ -150,18 +121,8 @@ while True:
         frame
     )
 
-
-    # =========================
-    # 7. STOPPEN
-    # =========================
-
     if cv2.waitKey(1) & 0xFF == ord("q"):
         break
-
-
-# =========================
-# 8. OPRUIMEN
-# =========================
 
 camera.release()
 cv2.destroyAllWindows()
