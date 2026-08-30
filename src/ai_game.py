@@ -6,24 +6,14 @@ import pandas as pd
 
 from character import Character
 
-
-# =========================
-# INSTELLINGEN
-# =========================
-
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 
 CONFIDENCE_THRESHOLD = 0.70
 
-
-# =========================
-# AI MODEL
-# =========================
-
+# Laad model uit models map
 model = joblib.load("models/gesture_model.pkl")
 
-# Dezelfde feature-namen als tijdens het trainen
 feature_columns = []
 
 for i in range(21):
@@ -35,10 +25,7 @@ for i in range(21):
 
 print("Gesture model geladen.")
 
-# =========================
-# MEDIAPIPE
-# =========================
-
+# markers op hand
 mp_hands = mp.solutions.hands
 mp_drawing = mp.solutions.drawing_utils
 
@@ -50,12 +37,8 @@ hands = mp_hands.Hands(
 )
 
 
-# =========================
-# LANDMARK NORMALISATIE
-# =========================
-
+# normaliseren van de hand landmarks ten opzichte van de pols
 def normalize_landmarks(hand_landmarks):
-
     landmarks = hand_landmarks.landmark
 
     wrist_x = landmarks[0].x
@@ -65,7 +48,6 @@ def normalize_landmarks(hand_landmarks):
     data = []
 
     for landmark in landmarks:
-
         data.extend([
             landmark.x - wrist_x,
             landmark.y - wrist_y,
@@ -75,10 +57,21 @@ def normalize_landmarks(hand_landmarks):
     return data
 
 
-# =========================
-# PYGAME
-# =========================
+# Blokken voor het speelveld maken
+def create_blocks():
+    return [
 
+        pygame.Rect(100, 460, 60, 40),
+        pygame.Rect(220, 460, 60, 40),
+        pygame.Rect(340, 460, 60, 40),
+        pygame.Rect(460, 460, 60, 40),
+        pygame.Rect(580, 460, 60, 40),
+        pygame.Rect(700, 460, 60, 40)
+
+    ]
+
+
+# Pygame starten
 pygame.init()
 
 screen = pygame.display.set_mode(
@@ -91,114 +84,68 @@ pygame.display.set_caption(
 
 clock = pygame.time.Clock()
 
-
-# =========================
-# CHARACTER
-# =========================
-
+# Character init
 character = Character(
     SCREEN_WIDTH // 2,
     400
 )
 
+GAME_PLAYING = "playing"
+GAME_FINISHED = "finished"
 
-# =========================
-# BLOKKEN
-# =========================
+game_state = GAME_PLAYING
 
-blocks = [
+blocks = create_blocks()
 
-    pygame.Rect(150, 460, 60, 40),
-    pygame.Rect(300, 460, 60, 40),
-    pygame.Rect(450, 460, 60, 40),
-    pygame.Rect(600, 460, 60, 40)
+previous_gesture = ""
 
-]
-
-
-# =========================
-# WEBCAM
-# =========================
+# Webcam openen
 
 camera = cv2.VideoCapture(0)
 
 if not camera.isOpened():
-
     print("Kan de webcam niet openen.")
 
     pygame.quit()
     exit()
 
-
-# =========================
-# GAME LOOP
-# =========================
-
 running = True
 
 while running:
-
-    # =========================
-    # PYGAME EVENTS
-    # =========================
 
     for event in pygame.event.get():
 
         if event.type == pygame.QUIT:
             running = False
 
-
-    # =========================
-    # CAMERA
-    # =========================
-
     success, frame = camera.read()
 
     if not success:
         continue
 
-    # BGR → RGB
     rgb_frame = cv2.cvtColor(
         frame,
         cv2.COLOR_BGR2RGB
     )
-
-
-    # =========================
-    # HAND DETECTIE
-    # =========================
 
     result = hands.process(rgb_frame)
 
     gesture = "Geen hand"
     confidence = 0.0
 
-
     if result.multi_hand_landmarks:
-
         hand_landmarks = result.multi_hand_landmarks[0]
 
-        # Landmarks tekenen
         mp_drawing.draw_landmarks(
             frame,
             hand_landmarks,
             mp_hands.HAND_CONNECTIONS
         )
 
-        # =========================
-        # LANDMARK DATA
-        # =========================
-
         landmark_data = normalize_landmarks(
             hand_landmarks
         )
 
-
-        # =========================
-        # AI VOORSPELLING
-        # =========================
-
-        # Maak DataFrame met dezelfde feature-namen
         landmark_data_df = pd.DataFrame(
             [landmark_data],
             columns=feature_columns
@@ -216,31 +163,173 @@ while running:
 
         confidence = max(probabilities[0])
 
-        # =========================
-        # CHARACTER BESTUREN
-        # =========================
+    action_pressed = (
+            gesture == "ACTION"
+            and confidence >= CONFIDENCE_THRESHOLD
+            and previous_gesture != "ACTION"
+    )
+
+    if game_state == GAME_PLAYING:
 
         if confidence >= CONFIDENCE_THRESHOLD:
 
             if gesture == "LEFT":
+
                 character.move_left()
 
             elif gesture == "RIGHT":
+
                 character.move_right()
 
             elif gesture == "UP":
+
                 character.move_up()
 
             elif gesture == "DOWN":
+
                 character.move_down()
 
-            elif gesture == "ACTION":
+            elif action_pressed:
+
                 character.action(blocks)
 
+        # Einde spel
+        if len(blocks) == 0:
+            game_state = GAME_FINISHED
 
-    # =========================
-    # CAMERA INFO
-    # =========================
+            print("Alle blokken zijn gebroken!")
+            print("GEFELICITEERD, JE HEBT GEWONNEN!")
+
+    character.update(
+        SCREEN_WIDTH,
+        SCREEN_HEIGHT
+    )
+
+    screen.fill(
+        (30, 30, 30)
+    )
+
+    if game_state == GAME_PLAYING:
+
+        pygame.draw.rect(
+            screen,
+            (80, 80, 80),
+            (
+                0,
+                500,
+                SCREEN_WIDTH,
+                100
+            )
+        )
+
+        for block in blocks:
+            pygame.draw.rect(
+                screen,
+                (120, 80, 40),
+                block
+            )
+
+            pygame.draw.rect(
+                screen,
+                (180, 130, 70),
+                block,
+                3
+            )
+
+        character.draw(screen)
+
+        font = pygame.font.Font(
+            None,
+            32
+        )
+
+        gesture_text = font.render(
+            f"Gesture: {gesture}",
+            True,
+            (255, 255, 255)
+        )
+
+        confidence_text = font.render(
+            f"Confidence: {confidence:.0%}",
+            True,
+            (255, 255, 255)
+        )
+
+        blocks_text = font.render(
+            f"Blocks remaining: {len(blocks)}",
+            True,
+            (255, 255, 255)
+        )
+
+        screen.blit(
+            gesture_text,
+            (20, 20)
+        )
+
+        screen.blit(
+            confidence_text,
+            (20, 55)
+        )
+
+        screen.blit(
+            blocks_text,
+            (20, 90)
+        )
+
+    # Win screen
+    elif game_state == GAME_FINISHED:
+
+        font_big = pygame.font.Font(
+            None,
+            70
+        )
+
+        font = pygame.font.Font(
+            None,
+            35
+        )
+
+        title = font_big.render(
+            "GEFELICITEERD!",
+            True,
+            (255, 220, 50)
+        )
+
+        message = font.render(
+            "Je hebt alle blokken gebroken!",
+            True,
+            (255, 255, 255)
+        )
+
+        instruction = font.render(
+            "Sluit het venster om het spel te beëindigen.",
+            True,
+            (180, 180, 180)
+        )
+
+        screen.blit(
+            title,
+            (
+                SCREEN_WIDTH // 2 - title.get_width() // 2,
+                170
+            )
+        )
+
+        screen.blit(
+            message,
+            (
+                SCREEN_WIDTH // 2 - message.get_width() // 2,
+                280
+            )
+        )
+
+        screen.blit(
+            instruction,
+            (
+                SCREEN_WIDTH // 2 - instruction.get_width() // 2,
+                350
+            )
+        )
 
     cv2.putText(
         frame,
@@ -262,153 +351,16 @@ while running:
         2
     )
 
-
-    # =========================
-    # CAMERA VENSTER
-    # =========================
-
     cv2.imshow(
         "Camera - AI Gesture Recognition",
         frame
     )
 
-
-    # =========================
-    # CHARACTER UPDATE
-    # =========================
-
-    character.update(
-        SCREEN_WIDTH,
-        SCREEN_HEIGHT
-    )
-
-
-    # =========================
-    # PYGAME SCHERM
-    # =========================
-
-    screen.fill((30, 30, 30))
-
-
-    # =========================
-    # GROND
-    # =========================
-
-    pygame.draw.rect(
-        screen,
-        (80, 80, 80),
-        (0, 500, SCREEN_WIDTH, 100)
-    )
-
-
-    # =========================
-    # BLOKKEN TEKENEN
-    # =========================
-
-    for block in blocks:
-
-        pygame.draw.rect(
-            screen,
-            (120, 80, 40),
-            block
-        )
-
-        pygame.draw.rect(
-            screen,
-            (180, 130, 70),
-            block,
-            3
-        )
-
-
-    # =========================
-    # CHARACTER
-    # =========================
-
-    character.draw(screen)
-
-
-    # =========================
-    # GAME INFO
-    # =========================
-
-    font = pygame.font.Font(None, 32)
-
-    gesture_text = font.render(
-        f"Gesture: {gesture}",
-        True,
-        (255, 255, 255)
-    )
-
-    confidence_text = font.render(
-        f"Confidence: {confidence:.0%}",
-        True,
-        (255, 255, 255)
-    )
-
-    screen.blit(
-        gesture_text,
-        (20, 20)
-    )
-
-    screen.blit(
-        confidence_text,
-        (20, 55)
-    )
-
-
-    # =========================
-    # COOLDOWN
-    # =========================
-
-    cooldown = character.get_cooldown_remaining()
-
-    if cooldown > 0:
-
-        cooldown_text = font.render(
-            f"Action cooldown: {cooldown:.1f}s",
-            True,
-            (255, 255, 255)
-        )
-
-    else:
-
-        cooldown_text = font.render(
-            "Action: READY",
-            True,
-            (255, 255, 255)
-        )
-
-    screen.blit(
-        cooldown_text,
-        (20, 90)
-    )
-
-
-    # =========================
-    # UITLEG
-    # =========================
-
-    controls_text = font.render(
-        "Move with gestures - Action breaks blocks",
-        True,
-        (255, 255, 255)
-    )
-
-    screen.blit(
-        controls_text,
-        (20, 570)
-    )
-
+    previous_gesture = gesture
 
     pygame.display.flip()
 
     clock.tick(60)
-
-
-# =========================
-# STOPPEN
-# =========================
 
 camera.release()
 
