@@ -7,10 +7,6 @@ from sklearn.metrics import accuracy_score, classification_report
 import joblib
 
 
-# =========================
-# 1. DATA INLADEN
-# =========================
-
 # Maak de namen van de 63 features
 columns = []
 
@@ -23,7 +19,6 @@ for i in range(21):
 
 columns.append("label")
 
-# CSV heeft momenteel geen header
 data = pd.read_csv(
     "../data/gestures.csv",
     header=None,
@@ -38,17 +33,10 @@ print("\nAantal samples per gebaar:")
 print(data["label"].value_counts())
 
 
-# =========================
-# 2. FEATURES EN LABEL
-# =========================
 
 X = data.drop("label", axis=1)
 y = data["label"]
 
-
-# =========================
-# 3. TRAIN / TEST SPLIT
-# =========================
 
 X_train, X_test, y_train, y_test = train_test_split(
     X,
@@ -63,19 +51,11 @@ print(f"Training samples: {len(X_train)}")
 print(f"Test samples: {len(X_test)}")
 
 
-# =========================
-# 4. MODEL MAKEN
-# =========================
-
 model = RandomForestClassifier(
     n_estimators=100,
     random_state=42
 )
 
-
-# =========================
-# 5. MODEL TRAINEN
-# =========================
 
 print("\nModel wordt getraind...")
 
@@ -83,10 +63,6 @@ model.fit(X_train, y_train)
 
 print("Training voltooid.")
 
-
-# =========================
-# 6. MODEL TESTEN
-# =========================
 
 predictions = model.predict(X_test)
 
@@ -100,10 +76,6 @@ print("=========================")
 print("\nClassification report:")
 print(classification_report(y_test, predictions))
 
-
-# =========================
-# 7. MODEL OPSLAAN
-# =========================
 
 os.makedirs("models", exist_ok=True)
 
