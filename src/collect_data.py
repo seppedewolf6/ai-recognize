@@ -3,7 +3,6 @@ import mediapipe as mp
 import csv
 import os
 
-
 mp_hands = mp.solutions.hands
 mp_drawing = mp.solutions.drawing_utils
 
@@ -58,7 +57,6 @@ if not file_exists:
 
     writer.writerow(header)
 
-
 hands = mp_hands.Hands(
     static_image_mode=False,
     max_num_hands=1,
@@ -71,7 +69,6 @@ camera = cv2.VideoCapture(0)
 if not camera.isOpened():
     print("Kan de webcam niet openen.")
     exit()
-
 
 print()
 print("================================")
@@ -89,10 +86,8 @@ print("Maak een gebaar en druk de")
 print("bijbehorende toets in.")
 print()
 
-
 current_label = None
 samples_collected = 0
-
 
 while True:
 
@@ -120,10 +115,8 @@ while True:
         # Normaliseer landmarks
         landmark_data = normalize_landmarks(hand_landmarks)
 
-        # Als er een label geselecteerd is,
-        # slaan we de data op.
+        # Als er een label geselecteerd is, slaan we de data op.
         if current_label is not None:
-
             writer.writerow(
                 landmark_data + [current_label]
             )
@@ -179,7 +172,6 @@ while True:
 
     elif key == ord("q"):
         break
-
 
 camera.release()
 cv2.destroyAllWindows()
