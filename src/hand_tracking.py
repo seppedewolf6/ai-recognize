@@ -1,7 +1,6 @@
 import cv2
 import mediapipe as mp
 
-
 mp_hands = mp.solutions.hands
 mp_drawing = mp.solutions.drawing_utils
 
@@ -22,6 +21,7 @@ def get_landmark_data(hand_landmarks):
         ])
 
     return data
+
 
 def normalize_landmarks(hand_landmarks):
     """
@@ -47,6 +47,7 @@ def normalize_landmarks(hand_landmarks):
 
     return data
 
+
 hands = mp_hands.Hands(
     static_image_mode=False,
     max_num_hands=1,
@@ -60,7 +61,6 @@ if not camera.isOpened():
     print("Kan de webcam niet openen.")
     exit()
 
-
 while True:
     success, frame = camera.read()
 
@@ -68,6 +68,7 @@ while True:
         print("Kan geen beeld van de webcam lezen.")
         break
 
+    # OpenCV gebruikt BGR, Mediapipe RGB
     rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
     result = hands.process(rgb_frame)
@@ -75,7 +76,6 @@ while True:
     if result.multi_hand_landmarks:
 
         for hand_landmarks in result.multi_hand_landmarks:
-
             # Hand tekenen
             mp_drawing.draw_landmarks(
                 frame,
@@ -93,7 +93,6 @@ while True:
 
     if cv2.waitKey(1) & 0xFF == ord("q"):
         break
-
 
 camera.release()
 cv2.destroyAllWindows()
