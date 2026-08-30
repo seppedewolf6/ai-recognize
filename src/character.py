@@ -1,10 +1,12 @@
 import pygame
-import time
 
 
 class Character:
 
     def __init__(self, x, y):
+
+        self.start_x = x
+        self.start_y = y
 
         self.x = x
         self.y = y
@@ -13,10 +15,6 @@ class Character:
         self.height = 60
 
         self.speed = 5
-
-        # Action cooldown
-        self.action_cooldown = 5
-        self.last_action_time = 0
 
     def move_left(self):
         self.x -= self.speed
@@ -30,22 +28,8 @@ class Character:
     def move_down(self):
         self.y += self.speed
 
-    def can_action(self):
-
-        current_time = time.time()
-
-        return (
-            current_time - self.last_action_time
-            >= self.action_cooldown
-        )
-
     def action(self, blocks):
 
-        # Controleer cooldown
-        if not self.can_action():
-            return False
-
-        # Karakter-rechthoek
         character_rect = pygame.Rect(
             self.x,
             self.y,
@@ -53,12 +37,10 @@ class Character:
             self.height
         )
 
-        # Kijk of het karakter op een blok staat
+        # Zoek een blok waar het karakter de blok raakt en verwijder het
         for block in blocks:
 
             if character_rect.colliderect(block):
-                self.last_action_time = time.time()
-
                 blocks.remove(block)
 
                 print("Blok gebroken!")
@@ -66,6 +48,11 @@ class Character:
                 return True
 
         return False
+
+    def reset(self):
+
+        self.x = self.start_x
+        self.y = self.start_y
 
     def update(self, screen_width, screen_height):
 
@@ -84,14 +71,6 @@ class Character:
                 screen_height - self.height
             )
         )
-
-    def get_cooldown_remaining(self):
-
-        elapsed = time.time() - self.last_action_time
-
-        remaining = self.action_cooldown - elapsed
-
-        return max(0, remaining)
 
     def draw(self, screen):
 
